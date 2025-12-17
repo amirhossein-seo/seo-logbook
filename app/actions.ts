@@ -187,7 +187,33 @@ export async function getUserWorkspace(userId: string): Promise<string | null> {
     await acceptPendingInvites(userId, user.email);
   }
 
-  // Step 1: Fetch existing memberships (after accepting invites)
+  // PRIORITY 1: Check cookie FIRST (before any fallback logic)
+  // This ensures workspace switching works immediately
+  const cookieStore = await cookies();
+  const activeWorkspaceId = cookieStore.get("seo-logbook-workspace")?.value;
+
+  if (activeWorkspaceId) {
+    // Verify user is still a member of this workspace
+    const { data: membership, error: membershipCheckError } = await supabase
+      .from("workspace_members")
+      .select("workspace_id")
+      .eq("workspace_id", activeWorkspaceId)
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (membershipCheckError && membershipCheckError.code !== "PGRST116") {
+      console.error("Error checking cookie workspace membership:", membershipCheckError);
+      // Continue to fallback logic
+    } else if (membership) {
+      // Cookie workspace is valid - return immediately
+      return activeWorkspaceId;
+    } else {
+      // Invalid cookie - user is not a member of this workspace, clear it
+      cookieStore.delete("seo-logbook-workspace");
+    }
+  }
+
+  // PRIORITY 2: Fallback - Fetch existing memberships (only if cookie was invalid/missing)
   let { data: memberships, error: membershipError } = await supabase
     .from("workspace_members")
     .select("workspace_id")
@@ -198,7 +224,7 @@ export async function getUserWorkspace(userId: string): Promise<string | null> {
     return null;
   }
 
-  // Step 2: If still no memberships, check if the user already owns a workspace
+  // PRIORITY 3: If still no memberships, check if the user already owns a workspace
   if (!memberships || memberships.length === 0) {
       const { data: ownedWorkspace, error: ownedError } = await supabase
         .from("workspaces")
@@ -232,7 +258,7 @@ export async function getUserWorkspace(userId: string): Promise<string | null> {
 
         memberships = [{ workspace_id: ownedWorkspace.id }];
       } else {
-        // Step 4: If no owned workspace, create a new Personal Workspace
+        // PRIORITY 4: If no owned workspace, create a new Personal Workspace
         const { data: newWorkspace, error: workspaceError } = await supabase
           .from("workspaces")
           .insert({
@@ -265,24 +291,7 @@ export async function getUserWorkspace(userId: string): Promise<string | null> {
       }
   }
 
-  // Check cookie for active workspace (if we have memberships)
-  const cookieStore = await cookies();
-  const activeWorkspaceId = cookieStore.get("seo-logbook-workspace")?.value;
-
-  if (activeWorkspaceId && memberships) {
-    // Verify user is a member of the cookie workspace
-    const isMemberOfCookieWorkspace = memberships.some(
-      (m) => m.workspace_id === activeWorkspaceId
-    );
-
-    if (isMemberOfCookieWorkspace) {
-      return activeWorkspaceId;
-    }
-    // If cookie workspace is invalid, clear it
-    cookieStore.delete("seo-logbook-workspace");
-  }
-
-  // Return the first workspace membership
+  // PRIORITY 5: Return the first workspace membership
   if (memberships && memberships.length > 0) {
     return memberships[0].workspace_id;
   }
@@ -334,7 +343,12 @@ export async function switchWorkspace(workspaceId: string) {
     secure: process.env.NODE_ENV === "production",
   });
 
+  // Revalidate all relevant paths to ensure workspace context is updated everywhere
   revalidatePath("/", "layout");
+  revalidatePath("/projects");
+  revalidatePath("/dashboard");
+  revalidatePath("/team");
+  
   return { success: true };
 }
 

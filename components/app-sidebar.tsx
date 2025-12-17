@@ -69,9 +69,16 @@ export function AppSidebar() {
         if (user) {
           // Fetch all workspaces the user is a member of
           const allWorkspaces = await getAllWorkspaces();
-          setWorkspaces(allWorkspaces);
           
-          if (allWorkspaces.length > 0) {
+          // Filter out any null or undefined items to ensure type safety
+          const validWorkspaces = allWorkspaces.filter(
+            (ws): ws is { id: string; name: string } => 
+              ws !== null && ws !== undefined && ws.id !== undefined
+          );
+          
+          setWorkspaces(validWorkspaces);
+          
+          if (validWorkspaces.length > 0) {
             // Get the active workspace (checks cookie, accepts invites, etc.)
             const currentWorkspaceId = await getUserWorkspace(user.id);
             setActiveWorkspaceId(currentWorkspaceId);
