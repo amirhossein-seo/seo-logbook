@@ -33,6 +33,7 @@ export function InviteMemberDialog() {
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    // Capture form reference immediately before any async operations
     const form = e.currentTarget;
     setIsLoading(true);
     setError(null);
@@ -52,22 +53,29 @@ export function InviteMemberDialog() {
       return;
     }
 
-    const result = await inviteMember(email.trim(), role);
+    try {
+      const result = await inviteMember(email.trim(), role);
 
-    if (result?.error) {
-      setError(result.error);
-      setIsLoading(false);
-    } else {
-      setIsLoading(false);
-      setOpen(false);
-      setError(null);
-      setRole("member");
-      router.refresh();
-      form.reset();
-      // Show success message if it's a pending invitation
-      if (result?.message) {
-        // The message will be visible in the team page when it refreshes
+      if (result?.error) {
+        setError(result.error);
+        setIsLoading(false);
+      } else {
+        setIsLoading(false);
+        setOpen(false);
+        setError(null);
+        setRole("member");
+        // Reset form at the end of try block, before any navigation
+        form.reset();
+        router.refresh();
+        // Show success message if it's a pending invitation
+        if (result?.message) {
+          // The message will be visible in the team page when it refreshes
+        }
       }
+    } catch (error) {
+      console.error("Error inviting member:", error);
+      setError("An unexpected error occurred. Please try again.");
+      setIsLoading(false);
     }
   }
 

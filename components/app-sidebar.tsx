@@ -13,6 +13,8 @@ import {
   ChevronDown,
   Users,
   Building2,
+  History,
+  Bell,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getProjects, getAllWorkspaces, getUserWorkspace, switchWorkspace } from "@/app/actions";
@@ -40,6 +42,9 @@ const projectNavigation = (projectId: string) => [
   { name: "Logs", href: `/projects/${projectId}/logs`, icon: FileText },
   { name: "URLs", href: `/projects/${projectId}/urls`, icon: LinkIcon },
   { name: "Tasks", href: `/projects/${projectId}/tasks`, icon: CheckSquare },
+  { name: "Monitor History", href: `/projects/${projectId}/monitor-history`, icon: History },
+  { name: "Notifications", href: `/projects/${projectId}/notifications`, icon: Bell },
+  { name: "Settings", href: `/projects/${projectId}/settings`, icon: Settings },
 ];
 
 export function AppSidebar() {
@@ -59,6 +64,8 @@ export function AppSidebar() {
     ? projectNavigation(projectId)
     : globalNavigation;
 
+  const [userName, setUserName] = useState<string | null>(null);
+
   // Fetch workspaces and active workspace on mount and when workspace changes
   useEffect(() => {
     async function fetchWorkspaces() {
@@ -67,6 +74,12 @@ export function AppSidebar() {
         const { data: { user } } = await supabase.auth.getUser();
         
         if (user) {
+          // Get user's full name from metadata
+          const fullName = user.user_metadata?.full_name || 
+                          user.raw_user_meta_data?.full_name || 
+                          null;
+          setUserName(fullName || user.email || null);
+
           // Fetch all workspaces the user is a member of
           const allWorkspaces = await getAllWorkspaces();
           
@@ -97,8 +110,8 @@ export function AppSidebar() {
   useEffect(() => {
     async function fetchProjects() {
       try {
-        const fetchedProjects = await getProjects();
-        setProjects(fetchedProjects);
+        const { projects } = await getProjects();
+        setProjects(projects);
       } catch (error) {
         console.error("Error fetching projects:", error);
       } finally {
@@ -133,35 +146,50 @@ export function AppSidebar() {
   };
 
   return (
-    <div className="flex h-full w-64 flex-col border-r border-border bg-card">
-      <div className="flex h-16 items-center border-b border-border px-3">
+    <div className="flex h-full w-64 flex-col border-r border-slate-200/50 bg-white dark:bg-slate-900">
+      {/* Logo/Branding */}
+      <div className="flex h-16 items-center border-b border-slate-200/50 px-4 dark:border-white/10">
+        <Link href="/dashboard" className="flex items-center gap-2">
+          <div className="h-8 w-8 rounded-lg bg-slate-900 dark:bg-white flex items-center justify-center">
+            <span className="text-white dark:text-slate-900 text-sm font-bold">SL</span>
+          </div>
+          <span className="text-lg font-semibold text-slate-900 dark:text-foreground tracking-tight">
+            SEO LogHub
+          </span>
+        </Link>
+      </div>
+
+      {/* Workspace Switcher */}
+      <div className="border-b border-slate-200/50 px-3 py-3 dark:border-white/10">
         {isLoadingWorkspaces ? (
           <div className="text-sm font-medium text-muted-foreground">
-            Loading Workspaces...
+            Loading...
           </div>
         ) : workspaces.length <= 1 ? (
           // Single workspace: show as static text with icon
-          <Link href="/dashboard" className="flex items-center gap-2 text-lg font-semibold text-foreground hover:opacity-80 transition-opacity">
-            <Building2 className="h-5 w-5" />
+          <div className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-foreground">
+            <Building2 className="h-4 w-4 text-slate-500" />
             <span className="truncate">{currentWorkspace?.name || "My Workspace"}</span>
-          </Link>
+          </div>
         ) : (
           // Multiple workspaces: show as dropdown
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
-                className="w-full justify-between text-lg font-semibold text-foreground h-auto p-0 hover:bg-transparent"
+                className="w-full justify-between text-sm font-medium text-slate-700 dark:text-foreground h-auto p-0 hover:bg-transparent"
               >
                 <span className="flex items-center gap-2 truncate">
-                  <Building2 className="h-5 w-5 shrink-0" />
+                  <Building2 className="h-4 w-4 shrink-0 text-slate-500" />
                   {currentWorkspace?.name || "Select Workspace"}
                 </span>
                 <ChevronDown className="h-4 w-4 ml-2 shrink-0" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-56">
-              <DropdownMenuLabel>My Workspaces</DropdownMenuLabel>
+              <DropdownMenuLabel>
+                My Workspaces
+              </DropdownMenuLabel>
               <DropdownMenuSeparator />
               {workspaces.map((workspace) => (
                 <DropdownMenuItem
@@ -224,7 +252,7 @@ export function AppSidebar() {
       <nav className="flex-1 space-y-1 px-3 py-4">
         {isProjectContext && (
           <>
-            <div className="px-3 py-2">
+            <div className="px-3 py-2 mb-2">
               <Link
                 href="/projects"
                 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider hover:text-foreground transition-colors"
@@ -234,7 +262,7 @@ export function AppSidebar() {
             </div>
             <div className="px-3 py-2 mb-2">
               <p className="text-xs font-medium text-foreground truncate">
-                Project: {currentProject?.name || projectId}
+                {currentProject?.name || projectId}
               </p>
             </div>
           </>
@@ -248,8 +276,8 @@ export function AppSidebar() {
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                 isActive
-                  ? "bg-accent text-accent-foreground"
-                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                  ? "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-foreground"
+                  : "text-slate-600 dark:text-muted-foreground hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-foreground"
               )}
             >
               <item.icon className="h-5 w-5" />

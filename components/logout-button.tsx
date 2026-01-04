@@ -8,9 +8,15 @@ export function LogoutButton() {
   const router = useRouter();
 
   const logout = async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push("/auth/login");
+    try {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+      router.push("/auth/login");
+    } catch (error) {
+      console.error("Error during logout:", error);
+      // Still redirect even if signOut fails
+      router.push("/auth/login");
+    }
   };
 
   return <Button onClick={logout}>Logout</Button>;

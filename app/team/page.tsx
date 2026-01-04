@@ -7,8 +7,9 @@ import { InviteMemberDialog } from "@/components/invite-member-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { User, Trash2, Mail } from "lucide-react";
+import { User, Mail } from "lucide-react";
 import { RevokeInvitationButton } from "@/components/revoke-invitation-button";
+import { RemoveMemberButton } from "@/components/remove-member-button";
 
 async function PendingInvitationsList({ workspaceId }: { workspaceId: string }) {
   const invitations = await getPendingInvitations(workspaceId);
@@ -178,14 +179,9 @@ async function TeamMembersList({ workspaceId, currentUserEmail }: { workspaceId:
 
               {/* Actions */}
               <div className="flex-shrink-0 ml-4">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="text-muted-foreground hover:text-destructive"
-                  title="Remove member"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                {member.role !== "owner" && (
+                  <RemoveMemberButton memberId={member.member_id} memberEmail={member.email} />
+                )}
               </div>
             </div>
           </CardContent>

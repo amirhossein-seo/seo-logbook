@@ -3,9 +3,8 @@ export const dynamic = 'force-dynamic';
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getProjects } from "@/app/actions";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CreateProjectDialog } from "@/components/create-project-dialog";
-import Link from "next/link";
+import { ProjectCard } from "@/components/project-card";
 
 export default async function ProjectsPage() {
   const supabase = await createClient();
@@ -17,7 +16,7 @@ export default async function ProjectsPage() {
     redirect("/sign-in");
   }
 
-  const projects = await getProjects();
+  const { projects, userRole } = await getProjects();
 
   return (
     <div className="flex flex-col gap-6">
@@ -38,18 +37,7 @@ export default async function ProjectsPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {projects.map((project) => (
-            <Link key={project.id} href={`/projects/${project.id}/overview`}>
-              <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
-                <CardHeader>
-                  <CardTitle className="text-lg">{project.name || "Unnamed Project"}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">
-                    {project.domain || "No domain set"}
-                  </p>
-                </CardContent>
-              </Card>
-            </Link>
+            <ProjectCard key={project.id} project={project} userRole={userRole} />
           ))}
         </div>
       )}

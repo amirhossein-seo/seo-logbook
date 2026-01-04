@@ -3,20 +3,21 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getLogs } from "@/app/actions";
 import { LogFeed } from "@/components/log-feed";
-import { NewLogDialog } from "@/components/new-log-dialog";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Suspense } from "react";
+import { LogsHeader } from "@/components/logs/logs-header";
 
 async function LogsList({
   projectId,
   category,
+  highlight,
 }: {
   projectId: string;
   category?: string;
+  highlight?: string;
 }) {
   const logs = await getLogs(projectId, category);
-  return <LogFeed logs={logs} projectId={projectId} />;
+  return <LogFeed logs={logs} projectId={projectId} highlightId={highlight} />;
 }
 
 export default async function ProjectLogsPage({
@@ -24,7 +25,7 @@ export default async function ProjectLogsPage({
   searchParams,
 }: {
   params: Promise<{ projectId: string }>;
-  searchParams: Promise<{ category?: string }>;
+  searchParams: Promise<{ category?: string; highlight?: string; log_id?: string }>;
 }) {
   const [resolvedParams, resolvedSearchParams] = await Promise.all([
     params,
@@ -32,6 +33,7 @@ export default async function ProjectLogsPage({
   ]);
 
   const category = resolvedSearchParams.category;
+  const highlight = resolvedSearchParams.highlight || resolvedSearchParams.log_id;
 
   const supabase = await createClient();
   const {
@@ -44,15 +46,7 @@ export default async function ProjectLogsPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">Logs</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Track SEO activities and updates for this project
-          </p>
-        </div>
-        <NewLogDialog projectId={resolvedParams.projectId} />
-      </div>
+      <LogsHeader projectId={resolvedParams.projectId} />
 
       {/* Filter Bar */}
       <div className="flex flex-wrap items-center gap-2">
@@ -97,6 +91,7 @@ export default async function ProjectLogsPage({
         <LogsList
           projectId={resolvedParams.projectId}
           category={category}
+          highlight={highlight}
         />
       </Suspense>
     </div>

@@ -64,5 +64,23 @@
   }
   body {
     @apply bg-background text-foreground;
+    background-image: radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), 
+                      radial-gradient(at 50% 0%, hsla(225,39%,30%,1) 0, transparent 50%), 
+                      radial-gradient(at 100% 0%, hsla(339,49%,30%,1) 0, transparent 50%);
   }
+}
+
+.light body {
+  background-image: radial-gradient(at 0% 0%, hsla(210, 100%, 98%, 1) 0, transparent 50%),
+                    radial-gradient(at 50% 100%, hsla(220, 100%, 96%, 1) 0, transparent 50%),
+                    radial-gradient(at 100% 0%, hsla(200, 100%, 98%, 1) 0, transparent 50%);
+  background-color: #f8fafc; /* Slate-50 */
+}
+
+.glass-card {
+  @apply bg-white/70 backdrop-blur-lg border border-white/40 shadow-sm;
+}
+
+.dark .glass-card {
+  @apply bg-black/40 border-white/10;
 }

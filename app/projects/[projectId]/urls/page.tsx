@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getUrls } from "@/app/actions";
 import { UrlInventory } from "@/components/url-inventory";
+import { CreateUrlDialog } from "@/components/create-url-dialog";
 
 export default async function ProjectUrlsPage({
   params,
@@ -22,11 +23,14 @@ export default async function ProjectUrlsPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">URLs</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Inventory of tracked pages for this project
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground">URLs</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Inventory of tracked pages for this project
+          </p>
+        </div>
+        <CreateUrlDialog projectId={resolvedParams.projectId} />
       </div>
 
       <UrlInventory urls={urls} projectId={resolvedParams.projectId} />

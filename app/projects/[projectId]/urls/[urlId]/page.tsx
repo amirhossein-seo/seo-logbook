@@ -6,6 +6,7 @@ import { TaskCard } from "@/components/task-card";
 import { Suspense } from "react";
 import Link from "next/link";
 import { ExternalLink } from "lucide-react";
+import { LogsHeader } from "@/components/logs/logs-header";
 
 async function UrlDetailsContent({
   urlId,

@@ -6,7 +6,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowRight, FileText, Search, Link2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ArrowRight, FileText, Search, Link2, Settings, MoreVertical } from "lucide-react";
+import { MonitoringDrawer } from "./monitoring-drawer";
 
 interface UrlWithStats {
   id: string;
@@ -16,6 +23,8 @@ interface UrlWithStats {
   log_count: number;
   active_task_count: number;
   last_tracked_at?: string | null;
+  is_monitored?: boolean;
+  monitoring_frequency?: string | null;
 }
 
 interface UrlInventoryProps {
@@ -37,12 +46,19 @@ function splitUrl(url: string) {
 
 export function UrlInventory({ urls, projectId }: UrlInventoryProps) {
   const [query, setQuery] = useState("");
+  const [selectedUrlId, setSelectedUrlId] = useState<string | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return urls;
     return urls.filter((u) => u.url.toLowerCase().includes(q));
   }, [query, urls]);
+
+  const handleOpenSettings = (urlId: string) => {
+    setSelectedUrlId(urlId);
+    setIsDrawerOpen(true);
+  };
 
   return (
     <div className="flex flex-col gap-4">
@@ -78,33 +94,61 @@ export function UrlInventory({ urls, projectId }: UrlInventoryProps) {
               >
                 <CardHeader className="pb-2">
                   <div className="flex items-start justify-between gap-4">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-muted-foreground" />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
                         <CardTitle className="text-sm md:text-base truncate">
                           {path}
                         </CardTitle>
                       </div>
                       {host && (
-                        <p className="mt-1 text-xs text-muted-foreground truncate">
+                        <p className="text-xs text-muted-foreground truncate ml-6">
                           {host}
                         </p>
                       )}
                     </div>
 
-                    <Button
-                      asChild
-                      variant="outline"
-                      size="sm"
-                      className="shrink-0"
-                    >
-                      <Link
-                        href={`/projects/${projectId}/urls/${url.id}`}
+                    <div className="flex items-center gap-2 shrink-0">
+                      {/* Status Badge */}
+                      <Badge
+                        variant={url.is_monitored ? "default" : "secondary"}
+                        className={
+                          url.is_monitored
+                            ? "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20"
+                            : "text-slate-600 dark:text-slate-400"
+                        }
                       >
-                        View
-                        <ArrowRight className="h-3 w-3 ml-1" />
-                      </Link>
-                    </Button>
+                        {url.is_monitored && url.monitoring_frequency
+                          ? `Active (${url.monitoring_frequency})`
+                          : "Paused"}
+                      </Badge>
+
+                      {/* Actions Menu */}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() => handleOpenSettings(url.id)}
+                          >
+                            <Settings className="h-4 w-4 mr-2" />
+                            Settings
+                          </DropdownMenuItem>
+                          <DropdownMenuItem asChild>
+                            <Link
+                              href={`/projects/${projectId}/urls/${url.id}`}
+                              className="flex items-center"
+                            >
+                              <ArrowRight className="h-4 w-4 mr-2" />
+                              View Details
+                            </Link>
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="pt-0">
@@ -164,6 +208,30 @@ export function UrlInventory({ urls, projectId }: UrlInventoryProps) {
             );
           })}
         </div>
+      )}
+
+      {/* Monitoring Drawer */}
+      {selectedUrlId && (
+        <MonitoringDrawer
+          urlId={selectedUrlId}
+          projectId={projectId}
+          isOpen={isDrawerOpen}
+          onOpenChange={(open) => {
+            setIsDrawerOpen(open);
+            if (!open) {
+              setSelectedUrlId(null);
+            }
+          }}
+          initialIsMonitored={
+            urls.find((u) => u.id === selectedUrlId)?.is_monitored || false
+          }
+          initialLastChecked={
+            urls.find((u) => u.id === selectedUrlId)?.last_tracked_at || null
+          }
+          onStatusChange={() => {
+            // Refresh will be handled by router.refresh() in the drawer
+          }}
+        />
       )}
     </div>
   );

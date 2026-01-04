@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { hasEnvVars } from "../utils";
+import { createSupabaseAdmin } from "./admin";
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -59,6 +60,62 @@ export async function updateSession(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = "/sign-in";
     return NextResponse.redirect(url);
+  }
+
+  // Check if user is trying to access /admin routes
+  if (request.nextUrl.pathname.startsWith("/admin")) {
+    try {
+      // Get user ID from claims (JWT standard uses 'sub' for subject/user ID)
+      // Also try to get user directly if claims don't have sub
+      let userId: string | undefined = user?.sub || user?.id;
+      
+      // If we don't have userId from claims, try getUser()
+      if (!userId) {
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        userId = authUser?.id;
+      }
+      
+      // Hardcoded super-admin fallback
+      const SUPER_ADMIN_ID = "781c7402-f347-42ac-a4ad-942b78848278";
+      
+      if (!userId) {
+        // No user ID, redirect to sign-in
+        const url = request.nextUrl.clone();
+        url.pathname = "/sign-in";
+        return NextResponse.redirect(url);
+      }
+
+      // Allow access if user is hardcoded super-admin
+      if (userId === SUPER_ADMIN_ID) {
+        return supabaseResponse;
+      }
+
+      // Use admin client to check profile (bypasses RLS)
+      const admin = createSupabaseAdmin();
+      
+      // Check profile for global_role
+      const { data: profile, error: profileError } = await admin
+        .from("profiles")
+        .select("global_role")
+        .eq("id", userId)
+        .single();
+
+      // Check if user has super_admin role
+      const isSuperAdmin = !profileError && profile && profile.global_role === "super_admin";
+
+      if (!isSuperAdmin) {
+        // Not a super_admin, redirect to projects
+        const url = request.nextUrl.clone();
+        url.pathname = "/projects";
+        return NextResponse.redirect(url);
+      }
+    } catch (error) {
+      // Error checking role, redirect to projects for safety
+      console.error("Proxy admin check error:", error);
+      const url = request.nextUrl.clone();
+      url.pathname = "/projects";
+      return NextResponse.redirect(url);
+    }
   }
 
   // IMPORTANT: You *must* return the supabaseResponse object as it is.

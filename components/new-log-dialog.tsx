@@ -47,6 +47,7 @@ export function NewLogDialog({ projectId }: NewLogDialogProps) {
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    // Capture form reference immediately before any async operations
     const form = e.currentTarget;
     setIsLoading(true);
     setError(null);
@@ -58,22 +59,28 @@ export function NewLogDialog({ projectId }: NewLogDialogProps) {
       return;
     }
 
-    const formData = new FormData(form);
-    formData.set("category", category);
+    try {
+      const formData = new FormData(form);
+      formData.set("category", category);
 
-    const result = await createLog(formData);
+      const result = await createLog(formData);
 
-    if (result?.error) {
-      setError(result.error);
+      if (result?.error) {
+        setError(result.error);
+        setIsLoading(false);
+      } else {
+        setIsLoading(false);
+        setOpen(false);
+        setError(null);
+        setCategory("");
+        // Reset form at the end of try block, before any navigation
+        form.reset();
+        router.refresh();
+      }
+    } catch (error) {
+      console.error("Error creating log:", error);
+      setError("An unexpected error occurred. Please try again.");
       setIsLoading(false);
-    } else {
-      setIsLoading(false);
-      setOpen(false);
-      setError(null);
-      setCategory("");
-      router.refresh();
-      // Reset form using cached reference to avoid null after unmount
-      form.reset();
     }
   }
 
