@@ -21,6 +21,7 @@ interface ProjectMember {
   name: string;
   role: string;
   receiveAlerts: boolean;
+  sourceTable: "project_memberships" | "project_members" | "workspace_members";
 }
 
 export function ProjectSettingsForm({ projectId, emailAlertsEnabled }: ProjectSettingsFormProps) {
@@ -38,7 +39,8 @@ export function ProjectSettingsForm({ projectId, emailAlertsEnabled }: ProjectSe
       setLoadingMembers(true);
       try {
         const projectMembers = await getProjectMembers(projectId);
-        setMembers(projectMembers);
+        // Type assertion: getProjectMembers returns sourceTable as string, but we know it's one of the valid values
+        setMembers(projectMembers as ProjectMember[]);
       } catch (err) {
         console.error("Error fetching project members:", err);
       } finally {
@@ -77,7 +79,20 @@ export function ProjectSettingsForm({ projectId, emailAlertsEnabled }: ProjectSe
     setUpdatingMembers((prev) => new Set(prev).add(memberId));
     
     try {
-      const result = await updateMemberAlertPreference(memberId, !currentValue);
+      // Find the member to get all required fields
+      const member = members.find((m) => m.id === memberId);
+      if (!member) {
+        setError("Member not found");
+        return;
+      }
+
+      const result = await updateMemberAlertPreference(
+        member.id,
+        member.sourceTable,
+        projectId,
+        member.userId,
+        !currentValue
+      );
       
       if (result?.error) {
         setError(result.error);

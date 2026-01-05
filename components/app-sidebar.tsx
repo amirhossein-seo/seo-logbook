@@ -75,9 +75,7 @@ export function AppSidebar() {
         
         if (user) {
           // Get user's full name from metadata
-          const fullName = user.user_metadata?.full_name || 
-                          user.raw_user_meta_data?.full_name || 
-                          null;
+          const fullName = user.user_metadata?.full_name || null;
           setUserName(fullName || user.email || null);
 
           // Fetch all workspaces the user is a member of

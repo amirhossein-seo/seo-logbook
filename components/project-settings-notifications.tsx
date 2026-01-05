@@ -40,7 +40,8 @@ export function NotificationSettings({ projectId, emailAlertsEnabled: initialEna
       setLoadingMembers(true);
       try {
         const projectMembers = await getProjectMembers(projectId);
-        setMembers(projectMembers);
+        // Type assertion: getProjectMembers returns sourceTable as string, but we know it's one of the valid values
+        setMembers(projectMembers as ProjectMember[]);
       } catch (err) {
         console.error("Error fetching project members:", err);
       } finally {
