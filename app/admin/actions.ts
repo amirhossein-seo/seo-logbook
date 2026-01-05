@@ -127,7 +127,7 @@ export async function forceGlobalSync() {
   await requireSuperAdmin();
   
   try {
-    const { processAutomatedChecks } = await import("../../actions");
+    const { processAutomatedChecks } = await import("../actions");
     const result = await processAutomatedChecks(false);
     return {
       success: true,
